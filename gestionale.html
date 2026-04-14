@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gestionale Impresa Edile</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3a8a">
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #f4f6f9;
+    }
+
+    header {
+      background: #1e3a8a;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      background: #111827;
+      padding: 10px;
+    }
+
+    nav button {
+      background: transparent;
+      color: white;
+      border: none;
+      margin: 0 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    nav button:hover {
+      color: #60a5fa;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #1e3a8a;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button.action {
+      background: #1e3a8a;
+      color: white;
+      border: none;
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button.action:hover {
+      background: #2563eb;
+    }
+
+    ul {
+      margin-top: 15px;
+    }
+
+    li {
+      background: #f1f5f9;
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 5px;
+    }
+
+    .pagina {
+      display: none;
+    }
+
+    #risultato p {
+      background: #e0f2fe;
+      padding: 8px;
+      border-radius: 5px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<header>Gestionale Impresa Edile</header>
+
+<nav>
+  <button onclick="mostraPagina('home')">Home</button>
+  <button onclick="mostraPagina('operai')">Operai</button>
+  <button onclick="mostraPagina('cantieri')">Cantieri</button>
+  <button onclick="mostraPagina('presenze')">Presenze</button>
+  <button onclick="mostraPagina('report')">Report</button>
+</nav>
+
+<div class="container">
+
+<!-- HOME -->
+<div id="home" class="pagina">
+  <div class="card">
+    <h2>Benvenuto</h2>
+    <p>Gestisci operai, cantieri e presenze in modo semplice e veloce.</p>
+  </div>
+</div>
+
+<!-- OPERAI -->
+<div id="operai" class="pagina">
+  <div class="card">
+    <h2>Operai</h2>
+    <input type="text" id="nomeOperaio" placeholder="Nome operaio">
+    <button class="action" onclick="aggiungiOperaio()">Aggiungi Operaio</button>
+    <ul id="listaOperai"></ul>
+  </div>
+</div>
+
+<!-- CANTIERI -->
+<div id="cantieri" class="pagina">
+  <div class="card">
+    <h2>Cantieri</h2>
+    <input type="text" id="nomeCantiere" placeholder="Nome cantiere">
+    <button class="action" onclick="aggiungiCantiere()">Aggiungi Cantiere</button>
+    <ul id="listaCantieri"></ul>
+  </div>
+</div>
+
+<!-- PRESENZE -->
+<div id="presenze" class="pagina">
+  <div class="card">
+    <h2>Presenze</h2>
+
+    <input type="date" id="data">
+
+    <select id="operaio"></select>
+    <select id="cantiere"></select>
+
+    <select id="stato">
+      <option value="presente">Presente</option>
+      <option value="malato">Malato</option>
+      <option value="ferie">Ferie</option>
+    </select>
+
+    <input type="number" id="ore" placeholder="Ore lavorate">
+    <input type="text" id="lavoro" placeholder="Cosa ha fatto">
+
+    <button class="action" onclick="salvaPresenza()">Salva Presenza</button>
+    <button class="action" onclick="scaricaCSV()">Scarica Excel</button>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div id="report" class="pagina">
+  <div class="card">
+    <h2>Report Operaio</h2>
+
+    <input type="text" id="cercaNome" placeholder="Nome operaio">
+    <button class="action" onclick="generaReport()">Cerca</button>
+
+    <div id="risultato"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+
+let operai = JSON.parse(localStorage.getItem("operai")) || [];
+let cantieri = JSON.parse(localStorage.getItem("cantieri")) || [];
+let presenze = JSON.parse(localStorage.getItem("presenze")) || [];
+
+function mostraPagina(id) {
+  document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
+  document.getElementById(id).style.display = "block";
+  aggiornaListe();
+}
+
+function aggiornaListe() {
+
+  let listaOperai = document.getElementById("listaOperai");
+  if(listaOperai){
+    listaOperai.innerHTML = "";
+    operai.forEach(o => {
+      listaOperai.innerHTML += `<li>${o}</li>`;
+    });
+  }
+
+  let listaCantieri = document.getElementById("listaCantieri");
+  if(listaCantieri){
+    listaCantieri.innerHTML = "";
+    cantieri.forEach(c => {
+      listaCantieri.innerHTML += `<li>${c}</li>`;
+    });
+  }
+
+  let opSelect = document.getElementById("operaio");
+  let cantSelect = document.getElementById("cantiere");
+
+  if(opSelect){
+    opSelect.innerHTML = "";
+    operai.forEach(o => {
+      opSelect.innerHTML += `<option>${o}</option>`;
+    });
+  }
+
+  if(cantSelect){
+    cantSelect.innerHTML = "";
+    cantieri.forEach(c => {
+      cantSelect.innerHTML += `<option>${c}</option>`;
+    });
+  }
+}
+
+function aggiungiOperaio() {
+  let nome = document.getElementById("nomeOperaio").value;
+  operai.push(nome);
+  localStorage.setItem("operai", JSON.stringify(operai));
+  aggiornaListe();
+}
+
+function aggiungiCantiere() {
+  let nome = document.getElementById("nomeCantiere").value;
+  cantieri.push(nome);
+  localStorage.setItem("cantieri", JSON.stringify(cantieri));
+  aggiornaListe();
+}
+
+function salvaPresenza() {
+  let presenza = {
+    data: document.getElementById("data").value,
+    operaio: document.getElementById("operaio").value,
+    cantiere: document.getElementById("cantiere").value,
+    stato: document.getElementById("stato").value,
+    ore: document.getElementById("ore").value,
+    lavoro: document.getElementById("lavoro").value
+  };
+
+  presenze.push(presenza);
+  localStorage.setItem("presenze", JSON.stringify(presenze));
+
+  alert("Salvato!");
+  scaricaCSV();
+}
+
+function scaricaCSV() {
+  let csv = "Data,Operaio,Cantiere,Stato,Ore,Lavoro\n";
+
+  presenze.forEach(p => {
+    csv += `${p.data},${p.operaio},${p.cantiere},${p.stato},${p.ore},${p.lavoro}\n`;
+  });
+
+  let blob = new Blob([csv], { type: 'text/csv' });
+  let url = window.URL.createObjectURL(blob);
+
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = "presenze.csv";
+  a.click();
+
+  window.URL.revokeObjectURL(url);
+}
+
+function generaReport() {
+  let nome = document.getElementById("cercaNome").value;
+  let risultati = presenze.filter(p => p.operaio === nome);
+
+  let totale = 0;
+  let html = "";
+
+  risultati.forEach(p => {
+    totale += Number(p.ore);
+    html += `<p>${p.data} - ${p.cantiere} - ${p.ore} ore - ${p.lavoro}</p>`;
+  });
+
+  html += `<h3>Totale ore: ${totale}</h3>`;
+
+  document.getElementById("risultato").innerHTML = html;
+}
+
+mostraPagina('home');
+
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+</body>
+</html>
