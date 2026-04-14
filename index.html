@@ -84,6 +84,8 @@
 
     ul {
       margin-top: 15px;
+      padding: 0;
+      list-style: none;
     }
 
     li {
@@ -91,17 +93,25 @@
       padding: 8px;
       margin: 5px 0;
       border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .pagina {
       display: none;
     }
 
-    #risultato p {
-      background: #e0f2fe;
-      padding: 8px;
-      border-radius: 5px;
+    .mini-btn {
+      margin-left: 5px;
+      border: none;
+      cursor: pointer;
+      padding: 5px 8px;
+      border-radius: 4px;
     }
+
+    .edit { background: #f59e0b; color: white; }
+    .del { background: #ef4444; color: white; }
 
   </style>
 </head>
@@ -120,7 +130,6 @@
 
 <div class="container">
 
-<!-- HOME -->
 <div id="home" class="pagina">
   <div class="card">
     <h2>Benvenuto</h2>
@@ -128,7 +137,6 @@
   </div>
 </div>
 
-<!-- OPERAI -->
 <div id="operai" class="pagina">
   <div class="card">
     <h2>Operai</h2>
@@ -138,7 +146,6 @@
   </div>
 </div>
 
-<!-- CANTIERI -->
 <div id="cantieri" class="pagina">
   <div class="card">
     <h2>Cantieri</h2>
@@ -148,22 +155,17 @@
   </div>
 </div>
 
-<!-- PRESENZE -->
 <div id="presenze" class="pagina">
   <div class="card">
     <h2>Presenze</h2>
-
     <input type="date" id="data">
-
     <select id="operaio"></select>
     <select id="cantiere"></select>
-
     <select id="stato">
       <option value="presente">Presente</option>
       <option value="malato">Malato</option>
       <option value="ferie">Ferie</option>
     </select>
-
     <input type="number" id="ore" placeholder="Ore lavorate">
     <input type="text" id="lavoro" placeholder="Cosa ha fatto">
 
@@ -172,14 +174,11 @@
   </div>
 </div>
 
-<!-- REPORT -->
 <div id="report" class="pagina">
   <div class="card">
     <h2>Report Operaio</h2>
-
     <input type="text" id="cercaNome" placeholder="Nome operaio">
     <button class="action" onclick="generaReport()">Cerca</button>
-
     <div id="risultato"></div>
   </div>
 </div>
@@ -192,6 +191,9 @@ let operai = JSON.parse(localStorage.getItem("operai")) || [];
 let cantieri = JSON.parse(localStorage.getItem("cantieri")) || [];
 let presenze = JSON.parse(localStorage.getItem("presenze")) || [];
 
+let editOperaioIndex = null;
+let editCantiereIndex = null;
+
 function mostraPagina(id) {
   document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
   document.getElementById(id).style.display = "block";
@@ -200,19 +202,33 @@ function mostraPagina(id) {
 
 function aggiornaListe() {
 
-  let listaOperai = document.getElementById("listaOperai");
+  const listaOperai = document.getElementById("listaOperai");
   if(listaOperai){
     listaOperai.innerHTML = "";
-    operai.forEach(o => {
-      listaOperai.innerHTML += `<li>${o}</li>`;
+    operai.forEach((o, i) => {
+      listaOperai.innerHTML += `
+        <li>
+          ${o}
+          <span>
+            <button class="mini-btn edit" onclick="modificaOperaio(${i})">Modifica</button>
+            <button class="mini-btn del" onclick="cancellaOperaio(${i})">X</button>
+          </span>
+        </li>`;
     });
   }
 
-  let listaCantieri = document.getElementById("listaCantieri");
+  const listaCantieri = document.getElementById("listaCantieri");
   if(listaCantieri){
     listaCantieri.innerHTML = "";
-    cantieri.forEach(c => {
-      listaCantieri.innerHTML += `<li>${c}</li>`;
+    cantieri.forEach((c, i) => {
+      listaCantieri.innerHTML += `
+        <li>
+          ${c}
+          <span>
+            <button class="mini-btn edit" onclick="modificaCantiere(${i})">Modifica</button>
+            <button class="mini-btn del" onclick="cancellaCantiere(${i})">X</button>
+          </span>
+        </li>`;
     });
   }
 
@@ -221,29 +237,63 @@ function aggiornaListe() {
 
   if(opSelect){
     opSelect.innerHTML = "";
-    operai.forEach(o => {
-      opSelect.innerHTML += `<option>${o}</option>`;
-    });
+    operai.forEach(o => opSelect.innerHTML += `<option>${o}</option>`);
   }
 
   if(cantSelect){
     cantSelect.innerHTML = "";
-    cantieri.forEach(c => {
-      cantSelect.innerHTML += `<option>${c}</option>`;
-    });
+    cantieri.forEach(c => cantSelect.innerHTML += `<option>${c}</option>`);
   }
 }
 
 function aggiungiOperaio() {
-  let nome = document.getElementById("nomeOperaio").value;
-  operai.push(nome);
+  const input = document.getElementById("nomeOperaio");
+
+  if(editOperaioIndex !== null){
+    operai[editOperaioIndex] = input.value;
+    editOperaioIndex = null;
+  } else {
+    operai.push(input.value);
+  }
+
+  localStorage.setItem("operai", JSON.stringify(operai));
+  input.value = "";
+  aggiornaListe();
+}
+
+function modificaOperaio(i){
+  document.getElementById("nomeOperaio").value = operai[i];
+  editOperaioIndex = i;
+}
+
+function cancellaOperaio(i){
+  operai.splice(i,1);
   localStorage.setItem("operai", JSON.stringify(operai));
   aggiornaListe();
 }
 
 function aggiungiCantiere() {
-  let nome = document.getElementById("nomeCantiere").value;
-  cantieri.push(nome);
+  const input = document.getElementById("nomeCantiere");
+
+  if(editCantiereIndex !== null){
+    cantieri[editCantiereIndex] = input.value;
+    editCantiereIndex = null;
+  } else {
+    cantieri.push(input.value);
+  }
+
+  localStorage.setItem("cantieri", JSON.stringify(cantieri));
+  input.value = "";
+  aggiornaListe();
+}
+
+function modificaCantiere(i){
+  document.getElementById("nomeCantiere").value = cantieri[i];
+  editCantiereIndex = i;
+}
+
+function cancellaCantiere(i){
+  cantieri.splice(i,1);
   localStorage.setItem("cantieri", JSON.stringify(cantieri));
   aggiornaListe();
 }
