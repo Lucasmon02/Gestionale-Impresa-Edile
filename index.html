@@ -3,7 +3,6 @@
 <head>
   <title>Gestionale Edile PRO</title>
   <link rel="manifest" href="manifest.json">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script type="module">
@@ -22,115 +21,147 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let ruolo="";
+    let ruolo = "";
 
-    window.login = function(){
-      if(user.value=="admin" && pass.value=="1234"){
-        ruolo="admin";
+    // LOGIN FIXATO
+    window.login = function () {
+      if (user.value == "admin" && pass.value == "1234") {
+        ruolo = "admin";
       } else {
-        ruolo="utente";
+        ruolo = "utente";
       }
-      loginDiv.style.display="none";
-      menu.style.display="flex";
-      mostra('operai');
-    }
 
-    window.mostra = function(id){
-      document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
+      loginDiv.style.display = "none";
+      menu.style.display = "flex";
+      mostra("operai");
+      caricaDropdown();
+    };
 
-      if(ruolo=="utente" && id!="report"){
+    window.mostra = function (id) {
+      document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
+
+      if (ruolo == "utente" && id != "report") {
         alert("Solo report disponibile");
-        id="report";
+        id = "report";
       }
 
-      document.getElementById(id).style.display="block";
-    }
+      document.getElementById(id).style.display = "block";
+    };
 
-    window.indietro = function(){
-      document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
-      menu.style.display="flex";
-    }
+    window.indietro = function () {
+      document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
+      menu.style.display = "flex";
+    };
 
-    window.salvaOperaio = async function(){
-      await addDoc(collection(db,"operai"),{
-        nome:nome.value,
-        cognome:cognome.value,
-        telefono:telefono.value,
-        certificato:certificato.value,
-        note:note.value
+    // FIREBASE SAVE
+    window.salvaOperaio = async function () {
+      await addDoc(collection(db, "operai"), {
+        nome: nome.value,
+        cognome: cognome.value,
+        telefono: telefono.value,
+        certificato: certificato.value,
+        note: note.value
       });
-      alert("Salvato");
-    }
+      alert("Operaio salvato");
+    };
 
-    window.salvaCantiere = async function(){
-      await addDoc(collection(db,"cantieri"),{
-        nome:cantiereNome.value
+    window.salvaCantiere = async function () {
+      await addDoc(collection(db, "cantieri"), {
+        nome: cantiereNome.value
       });
-      alert("Salvato");
-    }
+      alert("Cantiere salvato");
+    };
 
-    window.salvaPresenza = async function(){
-      await addDoc(collection(db,"presenze"),{
-        data:data.value,
-        operaio:operaioPres.value,
-        cantiere:cantierePres.value,
-        stato:stato.value,
-        ore:ore.value,
-        lavoro:lavoro.value
+    window.salvaPresenza = async function () {
+      await addDoc(collection(db, "presenze"), {
+        data: data.value,
+        operaio: operaioPres.value,
+        cantiere: cantierePres.value,
+        stato: stato.value,
+        ore: ore.value,
+        lavoro: lavoro.value
       });
-      alert("Salvato");
+      alert("Presenza salvata");
+    };
+
+    // CARICA DROPDOWN
+    async function caricaDropdown() {
+      let opSnap = await getDocs(collection(db, "operai"));
+      let caSnap = await getDocs(collection(db, "cantieri"));
+
+      operaioPres.innerHTML = "";
+      cantierePres.innerHTML = "";
+
+      opSnap.forEach(doc => {
+        let d = doc.data();
+        operaioPres.innerHTML += `<option value="${d.nome} ${d.cognome}">${d.nome} ${d.cognome}</option>`;
+      });
+
+      caSnap.forEach(doc => {
+        let d = doc.data();
+        cantierePres.innerHTML += `<option value="${d.nome}">${d.nome}</option>`;
+      });
     }
 
-    // EXCEL PER CANTIERE
-    window.scaricaCantiere = async function(){
-      let snap = await getDocs(collection(db,"presenze"));
+    window.scaricaCantiere = async function () {
+      let snap = await getDocs(collection(db, "presenze"));
       let nomeCant = prompt("Nome cantiere?");
-      let csv="Data,Operaio,Ore,Lavoro\n";
 
-      snap.forEach(doc=>{
-        let d=doc.data();
-        if(d.cantiere==nomeCant){
-          csv+=`${d.data},${d.operaio},${d.ore},${d.lavoro}\n`;
+      let csv = "Data,Operaio,Ore,Lavoro\n";
+
+      snap.forEach(doc => {
+        let d = doc.data();
+        if (d.cantiere == nomeCant) {
+          csv += `${d.data},${d.operaio},${d.ore},${d.lavoro}\n`;
         }
       });
 
-      let blob = new Blob([csv], {type:'text/csv'});
-      let a=document.createElement("a");
-      a.href=URL.createObjectURL(blob);
-      a.download=nomeCant+".csv";
+      let blob = new Blob([csv], { type: "text/csv" });
+      let a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = nomeCant + ".csv";
       a.click();
-    }
+    };
 
-    window.cerca = async function(){
-      let snap = await getDocs(collection(db,"presenze"));
-      let html="",tot=0;
+    window.cerca = async function () {
+      let snap = await getDocs(collection(db, "presenze"));
+      let html = "", tot = 0;
 
-      snap.forEach(doc=>{
-        let d=doc.data();
-        if(d.operaio==cercaNome.value){
-          tot+=Number(d.ore||0);
-          html+=`<div class="item">${d.data} - ${d.cantiere} - ${d.ore}h</div>`;
+      snap.forEach(doc => {
+        let d = doc.data();
+        if (d.operaio == cercaNome.value) {
+          tot += Number(d.ore || 0);
+          html += `<div class="item">${d.data} - ${d.cantiere} - ${d.ore}h</div>`;
         }
       });
 
-      html+=`<h3>Totale: ${tot} ore</h3>`;
-      risultato.innerHTML=html;
-    }
+      html += `<h3>Totale: ${tot} ore</h3>`;
+      risultato.innerHTML = html;
+    };
+
   </script>
 
   <style>
-    body {margin:0;font-family:-apple-system;background:#f2f2f7;}
-    header {background:#007aff;color:white;padding:15px;text-align:center;font-size:20px;}
-    
+    body { margin:0; font-family:-apple-system; background:#f2f2f7; }
+
+    header {
+      background:#007aff;
+      color:white;
+      padding:15px;
+      text-align:center;
+      font-size:20px;
+    }
+
+    /* MENU SOSTITUITO COME RICHIESTO */
     .menu {
-  display:none;
-  position:fixed;
-  bottom:0;
-  width:100%;
-  background:white;
-  justify-content:space-around;
-  border-top:1px solid #ccc;
-}
+      display:none;
+      position:fixed;
+      bottom:0;
+      width:100%;
+      background:white;
+      justify-content:space-around;
+      border-top:1px solid #ccc;
+    }
 
     .menu button {
       flex:1;
@@ -140,11 +171,7 @@
       font-size:14px;
     }
 
-    .pagina {
-      display:none;
-      padding:20px;
-      margin-bottom:80px;
-    }
+    .pagina { display:none; padding:20px; margin-bottom:80px; }
 
     .card {
       background:white;
@@ -154,7 +181,7 @@
       box-shadow:0 2px 10px rgba(0,0,0,0.1);
     }
 
-    input,select {
+    input, select {
       width:100%;
       padding:12px;
       margin-top:10px;
@@ -179,67 +206,99 @@
       border-radius:10px;
       margin-top:5px;
     }
+
+    .info {
+      font-size:13px;
+      color:#666;
+      margin-bottom:10px;
+    }
   </style>
 </head>
 
 <body>
 
-<header>Gestionale Edile</header>
+<header>Gestionale Edile PRO</header>
 
+<!-- LOGIN -->
 <div id="loginDiv" class="pagina" style="display:block;">
   <div class="card">
     <input id="user" placeholder="Username">
-    <input id="pass" placeholder="Codice admin">
+    <input id="pass" placeholder="Password">
     <button class="action" onclick="login()">Entra</button>
   </div>
 </div>
 
+<!-- OPERAI -->
 <div id="operai" class="pagina">
   <div class="card">
-    <button onclick="indietro()">⬅</button>
+    <h3>👷 Inserisci operaio</h3>
+    <div class="info">Compila tutti i dati dell’operaio (anagrafica + contatti)</div>
+
     <input id="nome" placeholder="Nome">
     <input id="cognome" placeholder="Cognome">
     <input id="telefono" placeholder="Telefono">
     <input id="certificato" placeholder="Certificato">
     <input id="note" placeholder="Note">
-    <button class="action" onclick="salvaOperaio()">Salva</button>
+
+    <button class="action" onclick="salvaOperaio()">Salva Operaio</button>
   </div>
 </div>
 
+<!-- CANTIERI -->
 <div id="cantieri" class="pagina">
   <div class="card">
-    <button onclick="indietro()">⬅</button>
-    <input id="cantiereNome" placeholder="Cantiere">
-    <button class="action" onclick="salvaCantiere()">Salva</button>
+    <h3>🏗️ Inserisci cantiere</h3>
+    <div class="info">Inserisci il nome del cantiere attivo</div>
+
+    <input id="cantiereNome" placeholder="Nome cantiere">
+    <button class="action" onclick="salvaCantiere()">Salva Cantiere</button>
   </div>
 </div>
 
+<!-- PRESENZE -->
 <div id="presenze" class="pagina">
   <div class="card">
-    <button onclick="indietro()">⬅</button>
+    <h3>📅 Inserisci presenza</h3>
+    <div class="info">Seleziona operaio, cantiere e compila ore lavorate</div>
+
     <input type="date" id="data">
-    <input id="operaioPres">
-    <input id="cantierePres">
-    <input id="ore">
-    <input id="lavoro">
-    <button class="action" onclick="salvaPresenza()">Salva</button>
+
+    <select id="operaioPres"></select>
+    <select id="cantierePres"></select>
+
+    <select id="stato">
+      <option>Presente</option>
+      <option>Malato</option>
+      <option>Ferie</option>
+    </select>
+
+    <input id="ore" placeholder="Ore lavorate">
+    <input id="lavoro" placeholder="Descrizione lavoro">
+
+    <button class="action" onclick="salvaPresenza()">Salva Presenza</button>
     <button class="action" onclick="scaricaCantiere()">Scarica Excel Cantiere</button>
   </div>
 </div>
 
+<!-- REPORT -->
 <div id="report" class="pagina">
   <div class="card">
-    <input id="cercaNome">
+    <h3>📊 Report operaio</h3>
+    <div class="info">Inserisci nome operaio per vedere ore totali</div>
+
+    <input id="cercaNome" placeholder="Nome operaio">
     <button class="action" onclick="cerca()">Cerca</button>
+
     <div id="risultato"></div>
   </div>
 </div>
 
+<!-- MENU -->
 <div class="menu" id="menu">
-  <button onclick="mostra('operai')">👷</button>
-  <button onclick="mostra('cantieri')">🏗️</button>
-  <button onclick="mostra('presenze')">📅</button>
-  <button onclick="mostra('report')">📊</button>
+  <button onclick="mostra('operai')">👷 Operai</button>
+  <button onclick="mostra('cantieri')">🏗️ Cantieri</button>
+  <button onclick="mostra('presenze')">📅 Presenze</button>
+  <button onclick="mostra('report')">📊 Report</button>
 </div>
 
 </body>
