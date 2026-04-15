@@ -93,60 +93,53 @@
 <!-- LOGIN -->
 <div id="loginDiv" class="pagina" style="display:block;">
   <div class="card">
-
     <h3>Login</h3>
-    <div class="info">Scegli se entrare come Admin o Operaio</div>
+    <div class="info">Scegli accesso</div>
 
-    <select id="tipoLogin" onchange="cambiaLogin()">
+    <select id="tipoLogin">
       <option value="admin">Admin</option>
       <option value="operaio">Operaio</option>
     </select>
 
     <input id="user" placeholder="Username admin">
     <input id="pass" placeholder="Password admin">
-
-    <input id="operaioNome" placeholder="Nome e Cognome operaio" style="display:none;">
+    <input id="operaioNome" placeholder="Nome Operaio" style="display:none;">
 
     <button class="action" onclick="login()">Entra</button>
   </div>
 </div>
 
-<!-- OPERAI (ADMIN) -->
+<!-- OPERAI (ADMIN ONLY) -->
 <div id="operai" class="pagina">
   <div class="card">
-    <h3>👷 Operai</h3>
-
+    <h3>👷 Operai (Admin)</h3>
     <input id="nome" placeholder="Nome">
     <input id="cognome" placeholder="Cognome">
     <input id="telefono" placeholder="Telefono">
     <input id="certificato" placeholder="Certificato">
     <input id="note" placeholder="Note">
-
     <button class="action" onclick="salvaOperaio()">Salva + QR</button>
-
     <div id="qrBox"></div>
   </div>
 </div>
 
-<!-- CANTIERI (ADMIN) -->
+<!-- CANTIERI (ADMIN ONLY) -->
 <div id="cantieri" class="pagina">
   <div class="card">
-    <h3>🏗️ Cantieri</h3>
-
+    <h3>🏗️ Cantieri (Admin)</h3>
     <input id="cantiereNome" placeholder="Nome cantiere">
     <button class="action" onclick="salvaCantiere()">Salva</button>
   </div>
 </div>
 
-<!-- PRESENZE ADMIN (SOLO VISUALIZZAZIONE) -->
+<!-- PRESENZE (ADMIN ONLY) -->
 <div id="presenze" class="pagina">
   <div class="card">
-    <h3>📅 Presenze (Admin)</h3>
+    <h3>📊 Report Admin</h3>
 
-    <input id="cercaNome" placeholder="Cerca operaio">
+    <input id="cercaNome" placeholder="Operaio">
     <input type="date" id="dal">
     <input type="date" id="al">
-
     <input id="tariffa" placeholder="€/ora">
 
     <button class="action" onclick="reportMensile()">Genera Report</button>
@@ -155,20 +148,19 @@
   </div>
 </div>
 
-<!-- FIRMA OPERAIO (UNICA FUNZIONE OPERAIO) -->
+<!-- FIRMA (SOLO OPERAIO) -->
 <div id="firma" class="pagina">
   <div class="card">
     <h3>✍️ Firma Presenza</h3>
 
-    <div class="info">Compila e registra la tua presenza</div>
+    <div class="info">Solo operai possono firmare presenza</div>
 
     <input id="firmaNome" placeholder="Nome e Cognome">
     <select id="firmaCantiere"></select>
+    <input id="firmaOre" placeholder="Ore">
+    <input id="firmaLavoro" placeholder="Lavoro">
 
-    <input id="firmaOre" placeholder="Ore lavorate">
-    <input id="firmaLavoro" placeholder="Cosa hai fatto">
-
-    <button class="action" onclick="firmaPresenza()">Firma Presenza</button>
+    <button class="action" onclick="firmaPresenza()">Firma</button>
   </div>
 </div>
 
@@ -184,135 +176,81 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
-  authDomain: "gestionale-edile-4ec0b.firebaseapp.com",
-  projectId: "gestionale-edile-4ec0b",
-  storageBucket: "gestionale-edile-4ec0b.firebasestorage.app",
-  messagingSenderId: "397107137479",
-  appId: "1:397107137479:web:10ea93af7e5185967167e2"
-};
+const app = initializeApp({
+  apiKey:"AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
+  authDomain:"gestionale-edile-4ec0b.firebaseapp.com",
+  projectId:"gestionale-edile-4ec0b"
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let ruolo = "";
-
-// MOSTRA LOGIN CAMPI
-window.cambiaLogin = function(){
-  if(tipoLogin.value === "operaio"){
-    user.style.display="none";
-    pass.style.display="none";
-    operaioNome.style.display="block";
-  } else {
-    user.style.display="block";
-    pass.style.display="block";
-    operaioNome.style.display="none";
-  }
-};
+let ruolo="";
 
 // LOGIN
-window.login = function(){
+window.login=function(){
 
-  if(tipoLogin.value === "admin"){
-    if(user.value !== "admin" || pass.value !== "1234"){
-      alert("Credenziali errate");
-      return;
+  let tipo=tipoLogin.value;
+
+  if(tipo=="admin"){
+    if(user.value!="admin"||pass.value!="1234"){
+      alert("Errore login admin");return;
     }
     ruolo="admin";
   }
 
-  if(tipoLogin.value === "operaio"){
-    if(!operaioNome.value){
-      alert("Inserisci nome operaio");
-      return;
-    }
+  if(tipo=="operaio"){
+    if(!operaioNome.value){alert("Inserisci nome");return;}
     ruolo="operaio";
   }
+
+  showApp();
+};
+
+// LOGOUT FIX DEFINITIVO
+window.logout=function(){
+  ruolo="";
+  loginDiv.style.display="block";
+  menu.style.display="none";
+  document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
+
+  user.value="";
+  pass.value="";
+  operaioNome.value="";
+};
+
+function showApp(){
 
   loginDiv.style.display="none";
   menu.style.display="flex";
 
-  if(ruolo === "operaio") mostra("firma");
-  else mostra("operai");
+  document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
+
+  if(ruolo=="operaio"){
+    mostra("firma");
+  } else {
+    mostra("operai");
+  }
 
   realtime();
-};
+}
 
-// LOGOUT FIX
-window.logout = function(){
-  ruolo="";
-  loginDiv.style.display="block";
-  menu.style.display="none";
-
-  document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
-};
-
-window.mostra = function(id){
+window.mostra=function(id){
   document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
   document.getElementById(id).style.display="block";
 };
 
 function realtime(){
 
-  onSnapshot(collection(db,"operai"),(snap)=>{
-    operaioPres.innerHTML="";
-    snap.forEach(d=>{
-      let x=d.data();
-      operaioPres.innerHTML += `<option>${x.nome} ${x.cognome}</option>`;
-    });
-  });
-
   onSnapshot(collection(db,"cantieri"),(snap)=>{
-    cantierePres.innerHTML="";
     firmaCantiere.innerHTML="";
-
     snap.forEach(d=>{
-      let x=d.data();
-      cantierePres.innerHTML += `<option>${x.nome}</option>`;
-      firmaCantiere.innerHTML += `<option>${x.nome}</option>`;
+      firmaCantiere.innerHTML+=`<option>${d.data().nome}</option>`;
     });
   });
 }
 
-window.salvaOperaio = async function(){
-  let id = nome.value.toLowerCase()+"_"+cognome.value.toLowerCase();
+window.firmaPresenza=async function(){
 
-  await addDoc(collection(db,"operai"),{
-    id,nome:nome.value,cognome:cognome.value
-  });
-
-  new QRCode(document.getElementById("qrBox"), id);
-
-  nome.value=cognome.value=telefono.value=certificato.value=note.value="";
-};
-
-window.salvaCantiere = async function(){
-  await addDoc(collection(db,"cantieri"),{nome:cantiereNome.value});
-  cantiereNome.value="";
-};
-
-window.reportMensile = async function(){
-  let snap = await getDocs(collection(db,"presenze"));
-  let nome=(cercaNome.value||"").toLowerCase();
-  let tot=0;
-  let html="";
-
-  snap.forEach(d=>{
-    let x=d.data();
-    let op=(x.operaio||"").toLowerCase();
-
-    if(op.includes(nome)){
-      tot+=Number(x.ore||0);
-      html+=`<div class='item'>${x.data} - ${x.cantiere} - ${x.ore}</div>`;
-    }
-  });
-
-  html+=`<h3>Totale ore: ${tot}</h3>`;
-  risultato.innerHTML=html;
-};
-
-window.firmaPresenza = async function(){
   await addDoc(collection(db,"presenze"),{
     operaio:firmaNome.value,
     cantiere:firmaCantiere.value,
@@ -323,14 +261,39 @@ window.firmaPresenza = async function(){
 
   firmaOre.value="";
   firmaLavoro.value="";
+
   alert("Firmato!");
 };
 
-window.exportPDF=function(){
-  const { jsPDF }=window.jspdf;
-  let doc=new jsPDF();
-  doc.text(risultato.innerText,10,10);
-  doc.save("report.pdf");
+window.salvaOperaio=async function(){
+  await addDoc(collection(db,"operai"),{
+    nome:nome.value,
+    cognome:cognome.value
+  });
+};
+
+window.salvaCantiere=async function(){
+  await addDoc(collection(db,"cantieri"),{
+    nome:cantiereNome.value
+  });
+};
+
+window.reportMensile=async function(){
+  let snap=await getDocs(collection(db,"presenze"));
+  let nome=(cercaNome.value||"").toLowerCase();
+  let tot=0;
+  let html="";
+
+  snap.forEach(d=>{
+    let x=d.data();
+    if((x.operaio||"").toLowerCase().includes(nome)){
+      tot+=Number(x.ore||0);
+      html+=`<div class='item'>${x.data} - ${x.cantiere} - ${x.ore}</div>`;
+    }
+  });
+
+  html+=`<h3>Totale ore: ${tot}</h3>`;
+  risultato.innerHTML=html;
 };
 
 </script>
