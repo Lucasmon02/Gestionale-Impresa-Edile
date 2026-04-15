@@ -82,7 +82,22 @@
 
 <body>
 
-<header>Gestionale Edile PRO</header>
+<header>
+  Gestionale Edile PRO
+  <button onclick="logout()" style="
+    position:absolute;
+    right:10px;
+    top:10px;
+    background:white;
+    color:#007aff;
+    border:none;
+    padding:6px 10px;
+    border-radius:8px;
+    font-weight:bold;
+  ">
+    Logout
+  </button>
+</header>
 
 <!-- LOGIN -->
 <div id="loginDiv" class="pagina" style="display:block;">
@@ -187,6 +202,27 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let ruolo = "";
+/* LOGOUT */
+  window.logout = function () {
+
+  // torna al login
+  loginDiv.style.display = "block";
+  menu.style.display = "none";
+
+  // nasconde tutte le pagine
+  document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
+
+  // reset campi login
+  user.value = "";
+  pass.value = "";
+
+  // reset ruolo
+  ruolo = "";
+
+  // opzionale: torna pulito al login
+  console.log("Logout effettuato");
+};
+  
 
 /* LOGIN */
 window.login = function () {
