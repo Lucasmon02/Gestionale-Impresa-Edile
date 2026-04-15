@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
 
+  <!-- PDF LIB -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
     body { margin:0; font-family:-apple-system; background:#f2f2f7; }
 
@@ -15,9 +18,9 @@
       padding:15px;
       text-align:center;
       font-size:20px;
+      position:relative;
     }
 
-    /* MENU FIX (come richiesto) */
     .menu {
       display:none;
       position:fixed;
@@ -72,11 +75,7 @@
       margin-top:5px;
     }
 
-    .info {
-      font-size:13px;
-      color:#666;
-      margin-bottom:10px;
-    }
+    .info { font-size:13px; color:#666; margin-bottom:10px; }
   </style>
 </head>
 
@@ -84,19 +83,7 @@
 
 <header>
   Gestionale Edile PRO
-  <button onclick="logout()" style="
-    position:absolute;
-    right:10px;
-    top:10px;
-    background:white;
-    color:#007aff;
-    border:none;
-    padding:6px 10px;
-    border-radius:8px;
-    font-weight:bold;
-  ">
-    Logout
-  </button>
+  <button onclick="logout()" style="position:absolute;right:10px;top:10px;background:white;color:#007aff;border:none;padding:6px 10px;border-radius:8px;">Logout</button>
 </header>
 
 <!-- LOGIN -->
@@ -111,35 +98,29 @@
 <!-- OPERAI -->
 <div id="operai" class="pagina">
   <div class="card">
-    <h3>👷 Inserisci operaio</h3>
-    <div class="info">Compila i dati dell’operaio</div>
-
-    <input id="nome" placeholder="Nome">
-    <input id="cognome" placeholder="Cognome">
-    <input id="telefono" placeholder="Telefono">
-    <input id="certificato" placeholder="Certificato">
-    <input id="note" placeholder="Note">
-
-    <button class="action" onclick="salvaOperaio()">Salva Operaio</button>
+    <h3>👷 Operai</h3>
+    <input id="nome">
+    <input id="cognome">
+    <input id="telefono">
+    <input id="certificato">
+    <input id="note">
+    <button class="action" onclick="salvaOperaio()">Salva</button>
   </div>
 </div>
 
 <!-- CANTIERI -->
 <div id="cantieri" class="pagina">
   <div class="card">
-    <h3>🏗️ Inserisci cantiere</h3>
-    <div class="info">Inserisci nome cantiere</div>
-
-    <input id="cantiereNome" placeholder="Nome cantiere">
-    <button class="action" onclick="salvaCantiere()">Salva Cantiere</button>
+    <h3>🏗️ Cantieri</h3>
+    <input id="cantiereNome">
+    <button class="action" onclick="salvaCantiere()">Salva</button>
   </div>
 </div>
 
 <!-- PRESENZE -->
 <div id="presenze" class="pagina">
   <div class="card">
-    <h3>📅 Inserisci presenza</h3>
-    <div class="info">Seleziona operaio e cantiere</div>
+    <h3>📅 Presenze</h3>
 
     <input type="date" id="data">
 
@@ -152,20 +133,26 @@
       <option>Ferie</option>
     </select>
 
-    <input id="ore" placeholder="Ore lavorate">
-    <input id="lavoro" placeholder="Lavoro svolto">
+    <input id="ore" placeholder="Ore">
+    <input id="lavoro" placeholder="Lavoro">
 
-    <button class="action" onclick="salvaPresenza()">Salva Presenza</button>
+    <button class="action" onclick="salvaPresenza()">Salva</button>
   </div>
 </div>
 
-<!-- REPORT -->
+<!-- REPORT + BUSTA PAGA -->
 <div id="report" class="pagina">
   <div class="card">
-    <h3>📊 Report</h3>
+    <h3>📊 Report + Busta Paga</h3>
 
-    <input id="cercaNome" placeholder="Nome operaio">
-    <button class="action" onclick="cerca()">Cerca</button>
+    <input id="cercaNome" placeholder="Operaio">
+    <input type="date" id="dal">
+    <input type="date" id="al">
+
+    <input id="tariffa" placeholder="Tariffa oraria (€)">
+
+    <button class="action" onclick="reportMensile()">Genera Report</button>
+    <button class="action" onclick="exportPDF()">Esporta PDF</button>
 
     <div id="risultato"></div>
   </div>
@@ -181,13 +168,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
@@ -201,135 +182,88 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let ruolo = "";
-/* LOGOUT */
- window.logout = function () {
+let ruolo="";
 
-  // 🔴 reset stato login
-  ruolo = "";
-
-  // 🔴 mostra login
-  loginDiv.style.display = "block";
-
-  // 🔴 nasconde menu
-  menu.style.display = "none";
-
-  // 🔴 nasconde tutte le pagine
-  document.querySelectorAll(".pagina").forEach(p => {
-    p.style.display = "none";
-  });
-
-  // 🔴 pulizia input login
-  user.value = "";
-  pass.value = "";
-
-  // 🔴 sicurezza: torna alla schermata login sempre
-  loginDiv.style.display = "block";
-
-  console.log("Logout OK");
-};
-  
-
-/* LOGIN */
-window.login = function () {
-  ruolo = (user.value === "admin" && pass.value === "1234") ? "admin" : "utente";
-
-  loginDiv.style.display = "none";
-  menu.style.display = "flex";
+window.login = function(){
+  ruolo=(user.value=="admin"&&pass.value=="1234")?"admin":"utente";
+  loginDiv.style.display="none";
+  menu.style.display="flex";
   mostra("operai");
-
-  realtime(); // 🔥 avvia realtime
+  realtime();
 };
 
-/* NAV */
-window.mostra = function (id) {
-  document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
-  document.getElementById(id).style.display = "block";
+window.logout = function(){
+  ruolo="";
+  loginDiv.style.display="block";
+  menu.style.display="none";
+  document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
 };
 
-/* REALTIME WHATSAPP STYLE */
-function realtime() {
+window.mostra = function(id){
+  document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
+  document.getElementById(id).style.display="block";
+};
 
-  onSnapshot(collection(db, "operai"), (snap) => {
-    operaioPres.innerHTML = "";
-    snap.forEach(d => {
-      let x = d.data();
-      operaioPres.innerHTML += `<option>${x.nome} ${x.cognome}</option>`;
+function realtime(){
+  onSnapshot(collection(db,"operai"),(snap)=>{
+    operaioPres.innerHTML="";
+    snap.forEach(d=>{
+      let x=d.data();
+      operaioPres.innerHTML+=`<option>${x.nome} ${x.cognome}</option>`;
     });
   });
 
-  onSnapshot(collection(db, "cantieri"), (snap) => {
-    cantierePres.innerHTML = "";
-    snap.forEach(d => {
-      let x = d.data();
-      cantierePres.innerHTML += `<option>${x.nome}</option>`;
+  onSnapshot(collection(db,"cantieri"),(snap)=>{
+    cantierePres.innerHTML="";
+    snap.forEach(d=>{
+      let x=d.data();
+      cantierePres.innerHTML+=`<option>${x.nome}</option>`;
     });
   });
 }
 
-/* SALVA OPERAIO + RESET */
-window.salvaOperaio = async function () {
-  await addDoc(collection(db, "operai"), {
-    nome: nome.value,
-    cognome: cognome.value,
-    telefono: telefono.value,
-    certificato: certificato.value,
-    note: note.value
+window.salvaOperaio=async function(){
+  await addDoc(collection(db,"operai"),{
+    nome:nome.value,cognome:cognome.value,telefono:telefono.value,certificato:certificato.value,note:note.value
   });
-
-  nome.value = "";
-  cognome.value = "";
-  telefono.value = "";
-  certificato.value = "";
-  note.value = "";
-
-  alert("Operaio salvato 🚀");
+  nome.value=cognome.value=telefono.value=certificato.value=note.value="";
 };
 
-/* SALVA CANTIERE + RESET */
-window.salvaCantiere = async function () {
-  await addDoc(collection(db, "cantieri"), {
-    nome: cantiereNome.value
-  });
-
-  cantiereNome.value = "";
-
-  alert("Cantiere salvato 🚀");
+window.salvaCantiere=async function(){
+  await addDoc(collection(db,"cantieri"),{nome:cantiereNome.value});
+  cantiereNome.value="";
 };
 
-/* PRESENZA + RESET */
-window.salvaPresenza = async function () {
-  await addDoc(collection(db, "presenze"), {
-    data: data.value,
-    operaio: operaioPres.value,
-    cantiere: cantierePres.value,
-    stato: stato.value,
-    ore: ore.value,
-    lavoro: lavoro.value
+window.salvaPresenza=async function(){
+  await addDoc(collection(db,"presenze"),{
+    data:data.value,operaio:operaioPres.value,cantiere:cantierePres.value,stato:stato.value,ore:ore.value,lavoro:lavoro.value
   });
-
-  data.value = "";
-  ore.value = "";
-  lavoro.value = "";
-
-  alert("Presenza salvata");
+  data.value=ore.value=lavoro.value="";
 };
 
-/* REPORT */
-window.cerca = async function () {
-  let snap = await getDocs(collection(db, "presenze"));
-  let html = "", tot = 0;
+window.reportMensile=async function(){
+  let snap=await getDocs(collection(db,"presenze"));
+  let nome=cercaNome.value,dalv=dal.value,alv=al.value;
+  let tot=0,html="";
 
-  snap.forEach(d => {
-    let x = d.data();
-    if (x.operaio == cercaNome.value) {
-      tot += Number(x.ore || 0);
-      html += `<div class="item">${x.data} - ${x.cantiere} - ${x.ore}h</div>`;
+  snap.forEach(d=>{
+    let x=d.data();
+    if(x.operaio==nome && x.data>=dalv && x.data<=alv){
+      tot+=Number(x.ore||0);
+      html+=`<div class='item'>${x.data} - ${x.cantiere} - ${x.ore}h</div>`;
     }
   });
 
-  html += `<h3>Totale: ${tot} ore</h3>`;
-  risultato.innerHTML = html;
+  let paga=tot*Number(tariffa.value||0);
+  html+=`<h3>Totale ore: ${tot}</h3><h3>Totale paga: €${paga}</h3>`;
+  risultato.innerHTML=html;
+};
+
+window.exportPDF=function(){
+  const { jsPDF }=window.jspdf;
+  let doc=new jsPDF();
+  doc.text(risultato.innerText,10,10);
+  doc.save("busta_paga.pdf");
 };
 </script>
 
