@@ -1,10 +1,10 @@
 {
   "name": "Gestionale Edile",
   "short_name": "Gestionale",
-  "start_url": "gestionale.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1e3a8a",
+  "theme_color": "#007aff",
   "icons": [
     {
       "src": "icon.png",
