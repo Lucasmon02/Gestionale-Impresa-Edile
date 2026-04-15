@@ -2,144 +2,9 @@
 <html>
 <head>
   <title>Gestionale Edile PRO</title>
-  <link rel="manifest" href="manifest.json">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
-      authDomain: "gestionale-edile-4ec0b.firebaseapp.com",
-      projectId: "gestionale-edile-4ec0b",
-      storageBucket: "gestionale-edile-4ec0b.firebasestorage.app",
-      messagingSenderId: "397107137479",
-      appId: "1:397107137479:web:10ea93af7e5185967167e2"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    let ruolo = "";
-
-    // LOGIN FIXATO
-    window.login = function () {
-      if (user.value == "admin" && pass.value == "1234") {
-        ruolo = "admin";
-      } else {
-        ruolo = "utente";
-      }
-
-      loginDiv.style.display = "none";
-      menu.style.display = "flex";
-      mostra("operai");
-      caricaDropdown();
-    };
-
-    window.mostra = function (id) {
-      document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
-
-      if (ruolo == "utente" && id != "report") {
-        alert("Solo report disponibile");
-        id = "report";
-      }
-
-      document.getElementById(id).style.display = "block";
-    };
-
-    window.indietro = function () {
-      document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
-      menu.style.display = "flex";
-    };
-
-    // FIREBASE SAVE
-    window.salvaOperaio = async function () {
-      await addDoc(collection(db, "operai"), {
-        nome: nome.value,
-        cognome: cognome.value,
-        telefono: telefono.value,
-        certificato: certificato.value,
-        note: note.value
-      });
-      alert("Operaio salvato");
-    };
-
-    window.salvaCantiere = async function () {
-      await addDoc(collection(db, "cantieri"), {
-        nome: cantiereNome.value
-      });
-      alert("Cantiere salvato");
-    };
-
-    window.salvaPresenza = async function () {
-      await addDoc(collection(db, "presenze"), {
-        data: data.value,
-        operaio: operaioPres.value,
-        cantiere: cantierePres.value,
-        stato: stato.value,
-        ore: ore.value,
-        lavoro: lavoro.value
-      });
-      alert("Presenza salvata");
-    };
-
-    // CARICA DROPDOWN
-    async function caricaDropdown() {
-      let opSnap = await getDocs(collection(db, "operai"));
-      let caSnap = await getDocs(collection(db, "cantieri"));
-
-      operaioPres.innerHTML = "";
-      cantierePres.innerHTML = "";
-
-      opSnap.forEach(doc => {
-        let d = doc.data();
-        operaioPres.innerHTML += `<option value="${d.nome} ${d.cognome}">${d.nome} ${d.cognome}</option>`;
-      });
-
-      caSnap.forEach(doc => {
-        let d = doc.data();
-        cantierePres.innerHTML += `<option value="${d.nome}">${d.nome}</option>`;
-      });
-    }
-
-    window.scaricaCantiere = async function () {
-      let snap = await getDocs(collection(db, "presenze"));
-      let nomeCant = prompt("Nome cantiere?");
-
-      let csv = "Data,Operaio,Ore,Lavoro\n";
-
-      snap.forEach(doc => {
-        let d = doc.data();
-        if (d.cantiere == nomeCant) {
-          csv += `${d.data},${d.operaio},${d.ore},${d.lavoro}\n`;
-        }
-      });
-
-      let blob = new Blob([csv], { type: "text/csv" });
-      let a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = nomeCant + ".csv";
-      a.click();
-    };
-
-    window.cerca = async function () {
-      let snap = await getDocs(collection(db, "presenze"));
-      let html = "", tot = 0;
-
-      snap.forEach(doc => {
-        let d = doc.data();
-        if (d.operaio == cercaNome.value) {
-          tot += Number(d.ore || 0);
-          html += `<div class="item">${d.data} - ${d.cantiere} - ${d.ore}h</div>`;
-        }
-      });
-
-      html += `<h3>Totale: ${tot} ore</h3>`;
-      risultato.innerHTML = html;
-    };
-
-  </script>
+  <link rel="manifest" href="manifest.json">
 
   <style>
     body { margin:0; font-family:-apple-system; background:#f2f2f7; }
@@ -152,7 +17,7 @@
       font-size:20px;
     }
 
-    /* MENU SOSTITUITO COME RICHIESTO */
+    /* MENU FIX (come richiesto) */
     .menu {
       display:none;
       position:fixed;
@@ -232,7 +97,7 @@
 <div id="operai" class="pagina">
   <div class="card">
     <h3>👷 Inserisci operaio</h3>
-    <div class="info">Compila tutti i dati dell’operaio (anagrafica + contatti)</div>
+    <div class="info">Compila i dati dell’operaio</div>
 
     <input id="nome" placeholder="Nome">
     <input id="cognome" placeholder="Cognome">
@@ -248,7 +113,7 @@
 <div id="cantieri" class="pagina">
   <div class="card">
     <h3>🏗️ Inserisci cantiere</h3>
-    <div class="info">Inserisci il nome del cantiere attivo</div>
+    <div class="info">Inserisci nome cantiere</div>
 
     <input id="cantiereNome" placeholder="Nome cantiere">
     <button class="action" onclick="salvaCantiere()">Salva Cantiere</button>
@@ -259,7 +124,7 @@
 <div id="presenze" class="pagina">
   <div class="card">
     <h3>📅 Inserisci presenza</h3>
-    <div class="info">Seleziona operaio, cantiere e compila ore lavorate</div>
+    <div class="info">Seleziona operaio e cantiere</div>
 
     <input type="date" id="data">
 
@@ -273,18 +138,16 @@
     </select>
 
     <input id="ore" placeholder="Ore lavorate">
-    <input id="lavoro" placeholder="Descrizione lavoro">
+    <input id="lavoro" placeholder="Lavoro svolto">
 
     <button class="action" onclick="salvaPresenza()">Salva Presenza</button>
-    <button class="action" onclick="scaricaCantiere()">Scarica Excel Cantiere</button>
   </div>
 </div>
 
 <!-- REPORT -->
 <div id="report" class="pagina">
   <div class="card">
-    <h3>📊 Report operaio</h3>
-    <div class="info">Inserisci nome operaio per vedere ore totali</div>
+    <h3>📊 Report</h3>
 
     <input id="cercaNome" placeholder="Nome operaio">
     <button class="action" onclick="cerca()">Cerca</button>
@@ -295,11 +158,138 @@
 
 <!-- MENU -->
 <div class="menu" id="menu">
-  <button onclick="mostra('operai')">👷 Operai</button>
-  <button onclick="mostra('cantieri')">🏗️ Cantieri</button>
-  <button onclick="mostra('presenze')">📅 Presenze</button>
-  <button onclick="mostra('report')">📊 Report</button>
+  <button onclick="mostra('operai')">👷</button>
+  <button onclick="mostra('cantieri')">🏗️</button>
+  <button onclick="mostra('presenze')">📅</button>
+  <button onclick="mostra('report')">📊</button>
 </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
+  authDomain: "gestionale-edile-4ec0b.firebaseapp.com",
+  projectId: "gestionale-edile-4ec0b",
+  storageBucket: "gestionale-edile-4ec0b.firebasestorage.app",
+  messagingSenderId: "397107137479",
+  appId: "1:397107137479:web:10ea93af7e5185967167e2"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let ruolo = "";
+
+/* LOGIN */
+window.login = function () {
+  ruolo = (user.value === "admin" && pass.value === "1234") ? "admin" : "utente";
+
+  loginDiv.style.display = "none";
+  menu.style.display = "flex";
+  mostra("operai");
+
+  realtime(); // 🔥 avvia realtime
+};
+
+/* NAV */
+window.mostra = function (id) {
+  document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
+  document.getElementById(id).style.display = "block";
+};
+
+/* REALTIME WHATSAPP STYLE */
+function realtime() {
+
+  onSnapshot(collection(db, "operai"), (snap) => {
+    operaioPres.innerHTML = "";
+    snap.forEach(d => {
+      let x = d.data();
+      operaioPres.innerHTML += `<option>${x.nome} ${x.cognome}</option>`;
+    });
+  });
+
+  onSnapshot(collection(db, "cantieri"), (snap) => {
+    cantierePres.innerHTML = "";
+    snap.forEach(d => {
+      let x = d.data();
+      cantierePres.innerHTML += `<option>${x.nome}</option>`;
+    });
+  });
+}
+
+/* SALVA OPERAIO + RESET */
+window.salvaOperaio = async function () {
+  await addDoc(collection(db, "operai"), {
+    nome: nome.value,
+    cognome: cognome.value,
+    telefono: telefono.value,
+    certificato: certificato.value,
+    note: note.value
+  });
+
+  nome.value = "";
+  cognome.value = "";
+  telefono.value = "";
+  certificato.value = "";
+  note.value = "";
+
+  alert("Operaio salvato 🚀");
+};
+
+/* SALVA CANTIERE + RESET */
+window.salvaCantiere = async function () {
+  await addDoc(collection(db, "cantieri"), {
+    nome: cantiereNome.value
+  });
+
+  cantiereNome.value = "";
+
+  alert("Cantiere salvato 🚀");
+};
+
+/* PRESENZA + RESET */
+window.salvaPresenza = async function () {
+  await addDoc(collection(db, "presenze"), {
+    data: data.value,
+    operaio: operaioPres.value,
+    cantiere: cantierePres.value,
+    stato: stato.value,
+    ore: ore.value,
+    lavoro: lavoro.value
+  });
+
+  data.value = "";
+  ore.value = "";
+  lavoro.value = "";
+
+  alert("Presenza salvata");
+};
+
+/* REPORT */
+window.cerca = async function () {
+  let snap = await getDocs(collection(db, "presenze"));
+  let html = "", tot = 0;
+
+  snap.forEach(d => {
+    let x = d.data();
+    if (x.operaio == cercaNome.value) {
+      tot += Number(x.ore || 0);
+      html += `<div class="item">${x.data} - ${x.cantiere} - ${x.ore}h</div>`;
+    }
+  });
+
+  html += `<h3>Totale: ${tot} ore</h3>`;
+  risultato.innerHTML = html;
+};
+</script>
 
 </body>
 </html>
