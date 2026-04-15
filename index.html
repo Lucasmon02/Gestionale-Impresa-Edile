@@ -3,197 +3,243 @@
 <head>
   <title>Gestionale Edile PRO</title>
 
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
+      authDomain: "gestionale-edile-4ec0b.firebaseapp.com",
+      projectId: "gestionale-edile-4ec0b",
+      storageBucket: "gestionale-edile-4ec0b.firebasestorage.app",
+      messagingSenderId: "397107137479",
+      appId: "1:397107137479:web:10ea93af7e5185967167e2"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let ruolo="";
+
+    window.login = function(){
+      if(user.value=="admin" && pass.value=="1234"){
+        ruolo="admin";
+      } else {
+        ruolo="utente";
+      }
+      loginDiv.style.display="none";
+      menu.style.display="flex";
+    }
+
+    window.mostra = function(id){
+      document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
+
+      if(ruolo=="utente" && id!="report"){
+        alert("Solo report disponibile");
+        id="report";
+      }
+
+      document.getElementById(id).style.display="block";
+    }
+
+    window.indietro = function(){
+      document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
+      menu.style.display="flex";
+    }
+
+    window.salvaOperaio = async function(){
+      await addDoc(collection(db,"operai"),{
+        nome:nome.value,
+        cognome:cognome.value,
+        telefono:telefono.value,
+        certificato:certificato.value,
+        note:note.value
+      });
+      alert("Salvato");
+    }
+
+    window.salvaCantiere = async function(){
+      await addDoc(collection(db,"cantieri"),{
+        nome:cantiereNome.value
+      });
+      alert("Salvato");
+    }
+
+    window.salvaPresenza = async function(){
+      await addDoc(collection(db,"presenze"),{
+        data:data.value,
+        operaio:operaioPres.value,
+        cantiere:cantierePres.value,
+        stato:stato.value,
+        ore:ore.value,
+        lavoro:lavoro.value
+      });
+      alert("Salvato");
+    }
+
+    // EXCEL PER CANTIERE
+    window.scaricaCantiere = async function(){
+      let snap = await getDocs(collection(db,"presenze"));
+      let nomeCant = prompt("Nome cantiere?");
+      let csv="Data,Operaio,Ore,Lavoro\n";
+
+      snap.forEach(doc=>{
+        let d=doc.data();
+        if(d.cantiere==nomeCant){
+          csv+=`${d.data},${d.operaio},${d.ore},${d.lavoro}\n`;
+        }
+      });
+
+      let blob = new Blob([csv], {type:'text/csv'});
+      let a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download=nomeCant+".csv";
+      a.click();
+    }
+
+    window.cerca = async function(){
+      let snap = await getDocs(collection(db,"presenze"));
+      let html="",tot=0;
+
+      snap.forEach(doc=>{
+        let d=doc.data();
+        if(d.operaio==cercaNome.value){
+          tot+=Number(d.ore||0);
+          html+=`<div class="item">${d.data} - ${d.cantiere} - ${d.ore}h</div>`;
+        }
+      });
+
+      html+=`<h3>Totale: ${tot} ore</h3>`;
+      risultato.innerHTML=html;
+    }
+  </script>
 
   <style>
-    body { font-family: Arial; background:#f4f6f9; margin:0;}
-    header {background:#1e3a8a;color:white;padding:15px;text-align:center;}
-    .container {padding:20px;}
-    .card {background:white;padding:20px;border-radius:10px;max-width:500px;margin:auto;margin-top:20px;}
-    input,select {width:100%;padding:10px;margin-top:10px;}
-    button {padding:10px;margin-top:10px;width:100%;background:#1e3a8a;color:white;border:none;}
-    .hidden{display:none;}
+    body {margin:0;font-family:-apple-system;background:#f2f2f7;}
+    header {background:#007aff;color:white;padding:15px;text-align:center;font-size:20px;}
+    
+    .menu {
+      display:none;
+      position:fixed;
+      bottom:0;
+      width:100%;
+      background:white;
+      display:flex;
+      justify-content:space-around;
+      border-top:1px solid #ccc;
+    }
+
+    .menu button {
+      flex:1;
+      border:none;
+      background:none;
+      padding:10px;
+      font-size:14px;
+    }
+
+    .pagina {
+      display:none;
+      padding:20px;
+      margin-bottom:80px;
+    }
+
+    .card {
+      background:white;
+      padding:15px;
+      border-radius:15px;
+      margin-top:10px;
+      box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    input,select {
+      width:100%;
+      padding:12px;
+      margin-top:10px;
+      border-radius:10px;
+      border:1px solid #ddd;
+    }
+
+    button.action {
+      background:#007aff;
+      color:white;
+      border:none;
+      padding:12px;
+      margin-top:10px;
+      width:100%;
+      border-radius:10px;
+      font-weight:bold;
+    }
+
+    .item {
+      background:#e5e5ea;
+      padding:10px;
+      border-radius:10px;
+      margin-top:5px;
+    }
   </style>
 </head>
 
 <body>
 
-<header>Gestionale Edile PRO</header>
+<header>Gestionale Edile</header>
 
-<div class="container">
-
-<!-- LOGIN -->
-<div id="login" class="card">
-  <h2>Login</h2>
-
-  <input id="user" placeholder="Username">
-
-  <input id="pass" placeholder="Codice (solo admin)">
-
-  <button onclick="login()">Entra</button>
+<div id="loginDiv" class="pagina" style="display:block;">
+  <div class="card">
+    <input id="user" placeholder="Username">
+    <input id="pass" placeholder="Codice admin">
+    <button class="action" onclick="login()">Entra</button>
+  </div>
 </div>
 
-<!-- MENU -->
-<div id="menu" class="hidden">
-
-<div class="card">
-  <button onclick="mostra('operai')">Operai</button>
-  <button onclick="mostra('cantieri')">Cantieri</button>
-  <button onclick="mostra('presenze')">Presenze</button>
-  <button onclick="mostra('report')">Report</button>
+<div id="operai" class="pagina">
+  <div class="card">
+    <button onclick="indietro()">⬅</button>
+    <input id="nome" placeholder="Nome">
+    <input id="cognome" placeholder="Cognome">
+    <input id="telefono" placeholder="Telefono">
+    <input id="certificato" placeholder="Certificato">
+    <input id="note" placeholder="Note">
+    <button class="action" onclick="salvaOperaio()">Salva</button>
+  </div>
 </div>
 
+<div id="cantieri" class="pagina">
+  <div class="card">
+    <button onclick="indietro()">⬅</button>
+    <input id="cantiereNome" placeholder="Cantiere">
+    <button class="action" onclick="salvaCantiere()">Salva</button>
+  </div>
 </div>
 
-<!-- OPERAI -->
-<div id="operai" class="card hidden">
-  <h2>Operai</h2>
-
-  <input id="nome" placeholder="Nome">
-  <input id="cognome" placeholder="Cognome">
-  <input id="telefono" placeholder="Telefono">
-  <input id="certificato" placeholder="Certificato medico">
-  <input id="note" placeholder="Note">
-
-  <button onclick="salvaOperaio()">Salva Operaio</button>
+<div id="presenze" class="pagina">
+  <div class="card">
+    <button onclick="indietro()">⬅</button>
+    <input type="date" id="data">
+    <input id="operaioPres">
+    <input id="cantierePres">
+    <input id="ore">
+    <input id="lavoro">
+    <button class="action" onclick="salvaPresenza()">Salva</button>
+    <button class="action" onclick="scaricaCantiere()">Scarica Excel Cantiere</button>
+  </div>
 </div>
 
-<!-- CANTIERI -->
-<div id="cantieri" class="card hidden">
-  <h2>Cantieri</h2>
-  <input id="cantiereNome" placeholder="Nome cantiere">
-  <button onclick="salvaCantiere()">Salva</button>
+<div id="report" class="pagina">
+  <div class="card">
+    <input id="cercaNome">
+    <button class="action" onclick="cerca()">Cerca</button>
+    <div id="risultato"></div>
+  </div>
 </div>
 
-<!-- PRESENZE -->
-<div id="presenze" class="card hidden">
-  <h2>Presenze</h2>
-
-  <input type="date" id="data">
-  <input id="operaioPres" placeholder="Nome operaio">
-  <input id="cantierePres" placeholder="Cantiere">
-
-  <select id="stato">
-    <option>presente</option>
-    <option>malato</option>
-    <option>ferie</option>
-  </select>
-
-  <input id="ore" placeholder="Ore">
-  <input id="lavoro" placeholder="Lavoro svolto">
-
-  <button onclick="salvaPresenza()">Salva</button>
+<div class="menu" id="menu">
+  <button onclick="mostra('operai')">👷</button>
+  <button onclick="mostra('cantieri')">🏗️</button>
+  <button onclick="mostra('presenze')">📅</button>
+  <button onclick="mostra('report')">📊</button>
 </div>
-
-<!-- REPORT -->
-<div id="report" class="card hidden">
-  <h2>Report</h2>
-  <input id="cerca" placeholder="Nome operaio">
-  <button onclick="cerca()">Cerca</button>
-  <div id="risultato"></div>
-</div>
-
-</div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// CONFIG TUO
-const firebaseConfig = {
-  apiKey: "AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
-  authDomain: "gestionale-edile-4ec0b.firebaseapp.com",
-  projectId: "gestionale-edile-4ec0b",
-  storageBucket: "gestionale-edile-4ec0b.firebasestorage.app",
-  messagingSenderId: "397107137479",
-  appId: "1:397107137479:web:10ea93af7e5185967167e2"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// LOGIN
-let ruolo = "";
-
-window.login = function(){
-  let u = document.getElementById("user").value;
-  let p = document.getElementById("pass").value;
-
-  if(u=="admin" && p=="1234"){
-    ruolo="admin";
-  } else {
-    ruolo="utente";
-  }
-
-  document.getElementById("login").classList.add("hidden");
-  document.getElementById("menu").classList.remove("hidden");
-}
-
-// NAV
-window.mostra = function(id){
-  document.querySelectorAll(".card").forEach(c=>c.classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
-
-  if(ruolo=="utente" && id!="report"){
-    alert("Accesso negato");
-    document.getElementById("report").classList.remove("hidden");
-  }
-}
-
-// SALVA OPERAIO
-window.salvaOperaio = async function(){
-  await addDoc(collection(db,"operai"),{
-    nome: nome.value,
-    cognome: cognome.value,
-    telefono: telefono.value,
-    certificato: certificato.value,
-    note: note.value
-  });
-  alert("Salvato!");
-}
-
-// SALVA CANTIERE
-window.salvaCantiere = async function(){
-  await addDoc(collection(db,"cantieri"),{
-    nome: cantiereNome.value
-  });
-  alert("Salvato!");
-}
-
-// SALVA PRESENZA
-window.salvaPresenza = async function(){
-  await addDoc(collection(db,"presenze"),{
-    data:data.value,
-    operaio:operaioPres.value,
-    cantiere:cantierePres.value,
-    stato:stato.value,
-    ore:ore.value,
-    lavoro:lavoro.value
-  });
-  alert("Salvato!");
-}
-
-// CERCA
-window.cerca = async function(){
-  let snap = await getDocs(collection(db,"presenze"));
-  let html="";
-  let totale=0;
-
-  snap.forEach(doc=>{
-    let d=doc.data();
-    if(d.operaio==cerca.value){
-      totale+=Number(d.ore||0);
-      html+=`<p>${d.data} - ${d.cantiere} - ${d.ore} ore</p>`;
-    }
-  });
-
-  html+=`<h3>Totale ore: ${totale}</h3>`;
-  risultato.innerHTML=html;
-}
-
-</script>
 
 </body>
 </html>
