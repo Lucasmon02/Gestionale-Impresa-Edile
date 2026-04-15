@@ -7,7 +7,6 @@
   <link rel="manifest" href="manifest.json">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
     body { margin:0; font-family:-apple-system; background:#f2f2f7; }
@@ -93,74 +92,95 @@
 <!-- LOGIN -->
 <div id="loginDiv" class="pagina" style="display:block;">
   <div class="card">
-    <h3>Login</h3>
-    <div class="info">Scegli accesso</div>
-
-    <select id="tipoLogin">
-      <option value="admin">Admin</option>
-      <option value="operaio">Operaio</option>
-    </select>
-
-    <input id="user" placeholder="Username admin">
-    <input id="pass" placeholder="Password admin">
-    <input id="operaioNome" placeholder="Nome Operaio" style="display:none;">
-
+    <input id="user" placeholder="Username">
+    <input id="pass" placeholder="Password">
     <button class="action" onclick="login()">Entra</button>
   </div>
 </div>
 
-<!-- OPERAI (ADMIN ONLY) -->
+<!-- OPERAI -->
 <div id="operai" class="pagina">
   <div class="card">
-    <h3>👷 Operai (Admin)</h3>
+    <h3>👷 Operai</h3>
+    <div class="info">Inserisci i dati dell’operaio (nome, cognome, contatti e note)</div>
+
     <input id="nome" placeholder="Nome">
     <input id="cognome" placeholder="Cognome">
     <input id="telefono" placeholder="Telefono">
     <input id="certificato" placeholder="Certificato">
     <input id="note" placeholder="Note">
-    <button class="action" onclick="salvaOperaio()">Salva + QR</button>
-    <div id="qrBox"></div>
+
+    <button class="action" onclick="salvaOperaio()">Salva</button>
   </div>
 </div>
 
-<!-- CANTIERI (ADMIN ONLY) -->
+<!-- CANTIERI -->
 <div id="cantieri" class="pagina">
   <div class="card">
-    <h3>🏗️ Cantieri (Admin)</h3>
+    <h3>🏗️ Cantieri</h3>
+    <div class="info">Inserisci il nome del cantiere dove si lavora</div>
+
     <input id="cantiereNome" placeholder="Nome cantiere">
     <button class="action" onclick="salvaCantiere()">Salva</button>
   </div>
 </div>
 
-<!-- PRESENZE (ADMIN ONLY) -->
+<!-- PRESENZE ADMIN -->
 <div id="presenze" class="pagina">
   <div class="card">
-    <h3>📊 Report Admin</h3>
+    <h3>📅 Presenze Admin</h3>
+    <div class="info">Gestione presenze operai e cantieri</div>
+
+    <input type="date" id="data">
+
+    <select id="operaioPres"></select>
+    <select id="cantierePres"></select>
+
+    <select id="stato">
+      <option>Presente</option>
+      <option>Malato</option>
+      <option>Ferie</option>
+    </select>
+
+    <input id="ore" placeholder="Ore">
+    <input id="lavoro" placeholder="Lavoro">
+
+    <button class="action" onclick="salvaPresenza()">Salva</button>
+  </div>
+</div>
+
+<!-- FIRMA OPERAIO -->
+<div id="firma" class="pagina">
+  <div class="card">
+    <h3>✍️ Firma Operaio</h3>
+    <div class="info">L’operaio firma la propria presenza</div>
+
+    <input id="firmaNome" placeholder="Nome e Cognome">
+
+    <select id="firmaCantiere"></select>
+
+    <input id="firmaOre" placeholder="Ore lavorate">
+    <input id="firmaLavoro" placeholder="Cosa hai fatto">
+
+    <button class="action" onclick="firmaPresenza()">Firma Presenza</button>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div id="report" class="pagina">
+  <div class="card">
+    <h3>📊 Report + Busta Paga</h3>
+    <div class="info">Ricerca intelligente (non serve maiuscole precise)</div>
 
     <input id="cercaNome" placeholder="Operaio">
     <input type="date" id="dal">
     <input type="date" id="al">
-    <input id="tariffa" placeholder="€/ora">
+    <input id="tariffa" placeholder="Tariffa oraria €">
 
     <button class="action" onclick="reportMensile()">Genera Report</button>
+    <button class="action" onclick="exportPDF()">Esporta PDF</button>
 
     <div id="risultato"></div>
-  </div>
-</div>
-
-<!-- FIRMA (SOLO OPERAIO) -->
-<div id="firma" class="pagina">
-  <div class="card">
-    <h3>✍️ Firma Presenza</h3>
-
-    <div class="info">Solo operai possono firmare presenza</div>
-
-    <input id="firmaNome" placeholder="Nome e Cognome">
-    <select id="firmaCantiere"></select>
-    <input id="firmaOre" placeholder="Ore">
-    <input id="firmaLavoro" placeholder="Lavoro">
-
-    <button class="action" onclick="firmaPresenza()">Firma</button>
   </div>
 </div>
 
@@ -168,135 +188,156 @@
 <div class="menu" id="menu">
   <button onclick="mostra('operai')">👷</button>
   <button onclick="mostra('cantieri')">🏗️</button>
-  <button onclick="mostra('presenze')">📊</button>
+  <button onclick="mostra('presenze')">📅</button>
   <button onclick="mostra('firma')">✍️</button>
+  <button onclick="mostra('report')">📊</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const app = initializeApp({
-  apiKey:"AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
-  authDomain:"gestionale-edile-4ec0b.firebaseapp.com",
-  projectId:"gestionale-edile-4ec0b"
-});
-
-const db = getFirestore(app);
-
-let ruolo="";
-
-// LOGIN
-window.login=function(){
-
-  let tipo=tipoLogin.value;
-
-  if(tipo=="admin"){
-    if(user.value!="admin"||pass.value!="1234"){
-      alert("Errore login admin");return;
-    }
-    ruolo="admin";
-  }
-
-  if(tipo=="operaio"){
-    if(!operaioNome.value){alert("Inserisci nome");return;}
-    ruolo="operaio";
-  }
-
-  showApp();
+const firebaseConfig = {
+  apiKey: "AIzaSyD_mnAjZPxEHmpIe1OVJTY-NkNDWiKxfA4",
+  authDomain: "gestionale-edile-4ec0b.firebaseapp.com",
+  projectId: "gestionale-edile-4ec0b",
+  storageBucket: "gestionale-edile-4ec0b.firebasestorage.app",
+  messagingSenderId: "397107137479",
+  appId: "1:397107137479:web:10ea93af7e5185967167e2"
 };
 
-// LOGOUT FIX DEFINITIVO
-window.logout=function(){
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let ruolo = "";
+
+window.login = function(){
+  ruolo = (user.value=="admin" && pass.value=="1234") ? "admin" : "utente";
+  loginDiv.style.display="none";
+  menu.style.display="flex";
+  mostra("operai");
+  realtime();
+};
+
+window.logout = function(){
   ruolo="";
   loginDiv.style.display="block";
   menu.style.display="none";
   document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
-
-  user.value="";
-  pass.value="";
-  operaioNome.value="";
 };
 
-function showApp(){
-
-  loginDiv.style.display="none";
-  menu.style.display="flex";
-
-  document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
-
-  if(ruolo=="operaio"){
-    mostra("firma");
-  } else {
-    mostra("operai");
-  }
-
-  realtime();
-}
-
-window.mostra=function(id){
+window.mostra = function(id){
   document.querySelectorAll(".pagina").forEach(p=>p.style.display="none");
   document.getElementById(id).style.display="block";
 };
 
 function realtime(){
 
+  onSnapshot(collection(db,"operai"),(snap)=>{
+    operaioPres.innerHTML="";
+    snap.forEach(d=>{
+      let x=d.data();
+      operaioPres.innerHTML += `<option>${x.nome} ${x.cognome}</option>`;
+    });
+  });
+
   onSnapshot(collection(db,"cantieri"),(snap)=>{
+    cantierePres.innerHTML="";
     firmaCantiere.innerHTML="";
     snap.forEach(d=>{
-      firmaCantiere.innerHTML+=`<option>${d.data().nome}</option>`;
+      let x=d.data();
+      cantierePres.innerHTML += `<option>${x.nome}</option>`;
+      firmaCantiere.innerHTML += `<option>${x.nome}</option>`;
     });
   });
 }
 
-window.firmaPresenza=async function(){
+window.salvaOperaio = async function(){
+  await addDoc(collection(db,"operai"),{
+    nome:nome.value,
+    cognome:cognome.value,
+    telefono:telefono.value,
+    certificato:certificato.value,
+    note:note.value
+  });
+
+  nome.value=cognome.value=telefono.value=certificato.value=note.value="";
+};
+
+window.salvaCantiere = async function(){
+  await addDoc(collection(db,"cantieri"),{nome:cantiereNome.value});
+  cantiereNome.value="";
+};
+
+window.salvaPresenza = async function(){
+  await addDoc(collection(db,"presenze"),{
+    data:data.value,
+    operaio:operaioPres.value,
+    cantiere:cantierePres.value,
+    stato:stato.value,
+    ore:ore.value,
+    lavoro:lavoro.value
+  });
+
+  data.value=ore.value=lavoro.value="";
+};
+
+window.firmaPresenza = async function(){
+
+  if(!firmaNome.value) return alert("Inserisci nome e cognome");
 
   await addDoc(collection(db,"presenze"),{
-    operaio:firmaNome.value,
+    operaio:firmaNome.value.trim().toLowerCase(),
     cantiere:firmaCantiere.value,
     ore:firmaOre.value,
     lavoro:firmaLavoro.value,
-    data:new Date().toISOString().split("T")[0]
+    data:new Date().toISOString().split("T")[0],
+    tipo:"firma"
   });
 
   firmaOre.value="";
   firmaLavoro.value="";
 
-  alert("Firmato!");
+  alert("Presenza firmata!");
 };
 
-window.salvaOperaio=async function(){
-  await addDoc(collection(db,"operai"),{
-    nome:nome.value,
-    cognome:cognome.value
-  });
-};
+window.reportMensile = async function(){
 
-window.salvaCantiere=async function(){
-  await addDoc(collection(db,"cantieri"),{
-    nome:cantiereNome.value
-  });
-};
+  let snap = await getDocs(collection(db,"presenze"));
 
-window.reportMensile=async function(){
-  let snap=await getDocs(collection(db,"presenze"));
-  let nome=(cercaNome.value||"").toLowerCase();
-  let tot=0;
-  let html="";
+  let nome = (cercaNome.value||"").toLowerCase().trim();
+  let dalv = dal.value;
+  let alv = al.value;
+
+  let tot = 0;
+  let html = "";
 
   snap.forEach(d=>{
-    let x=d.data();
-    if((x.operaio||"").toLowerCase().includes(nome)){
-      tot+=Number(x.ore||0);
-      html+=`<div class='item'>${x.data} - ${x.cantiere} - ${x.ore}</div>`;
+    let x = d.data();
+
+    let op = (x.operaio||"").toLowerCase().trim();
+
+    if(op.includes(nome) && x.data>=dalv && x.data<=alv){
+      tot += Number(x.ore||0);
+      html += `<div class='item'>${x.data} - ${x.cantiere} - ${x.ore}h</div>`;
     }
   });
 
-  html+=`<h3>Totale ore: ${tot}</h3>`;
-  risultato.innerHTML=html;
+  let paga = tot * Number(tariffa.value||0);
+
+  html += `<h3>Totale ore: ${tot}</h3><h3>Totale paga: €${paga}</h3>`;
+
+  risultato.innerHTML = html;
 };
 
+window.exportPDF = function(){
+  const { jsPDF } = window.jspdf;
+  let doc = new jsPDF();
+  doc.text(risultato.innerText,10,10);
+  doc.save("busta_paga.pdf");
+};
 </script>
 
 </body>
 </html>
+
