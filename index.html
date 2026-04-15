@@ -217,39 +217,61 @@ let ruolo = "";
 let operaiCache = [];
 
 // LOGIN LOGICA
+// LOGIN / LOGOUT FIX DEFINITIVO
+
 window.login = function () {
+
   let tipo = tipoLogin.value;
 
   if (tipo === "admin") {
-    if (user.value === "admin" && pass.value === "1234") {
-      ruolo = "admin";
-    } else {
+    if (user.value !== "admin" || pass.value !== "1234") {
       alert("Credenziali admin errate");
       return;
     }
+    ruolo = "admin";
   }
 
   if (tipo === "operaio") {
-    if (!operaioNome.value) return alert("Inserisci nome operaio");
+    if (!operaioNome.value) {
+      alert("Inserisci nome operaio");
+      return;
+    }
     ruolo = "operaio";
   }
 
+  showApp();
+};
+
+window.logout = function () {
+  ruolo = "";
+  showLogin();
+};
+
+function showLogin(){
+  document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
+  loginDiv.style.display = "block";
+  menu.style.display = "none";
+
+  // pulizia campi login
+  user.value = "";
+  pass.value = "";
+  operaioNome.value = "";
+}
+
+function showApp(){
   loginDiv.style.display = "none";
   menu.style.display = "flex";
 
-  if (ruolo === "operaio") mostra("firma");
-  else mostra("operai");
+  document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
+
+  if (ruolo === "operaio") {
+    mostra("firma");
+  } else {
+    mostra("operai");
+  }
 
   realtime();
-};
-
-// LOGOUT FIX
-window.logout = function () {
-  ruolo = "";
-  loginDiv.style.display = "block";
-  menu.style.display = "none";
-  document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
-};
+}
 
 window.mostra = function (id) {
   document.querySelectorAll(".pagina").forEach(p => p.style.display = "none");
@@ -260,11 +282,9 @@ function realtime () {
 
   onSnapshot(collection(db,"operai"),(snap)=>{
     operaioPres.innerHTML="";
-    operaiCache = [];
 
     snap.forEach(d=>{
       let x=d.data();
-      operaiCache.push(x);
       operaioPres.innerHTML += `<option>${x.nome} ${x.cognome}</option>`;
     });
   });
