@@ -6,8 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="manifest" href="manifest.json">
 
-  <!-- PDF LIB -->
+  <!-- PDF + QR LIB -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
     body { margin:0; font-family:-apple-system; background:#f2f2f7; }
@@ -75,7 +76,16 @@
       margin-top:5px;
     }
 
-    .info { font-size:13px; color:#666; margin-bottom:10px; }
+    .info {
+      font-size:13px;
+      color:#666;
+      margin-bottom:10px;
+    }
+
+    #qrBox {
+      margin-top:10px;
+      text-align:center;
+    }
   </style>
 </head>
 
@@ -98,13 +108,18 @@
 <!-- OPERAI -->
 <div id="operai" class="pagina">
   <div class="card">
-    <h3>👷 Operai</h3>
-    <input id="nome">
-    <input id="cognome">
-    <input id="telefono">
-    <input id="certificato">
-    <input id="note">
-    <button class="action" onclick="salvaOperaio()">Salva</button>
+    <h3>👷 Operai + QR</h3>
+    <div class="info">Inserisci operaio e genera QR identificativo</div>
+
+    <input id="nome" placeholder="Nome">
+    <input id="cognome" placeholder="Cognome">
+    <input id="telefono" placeholder="Telefono">
+    <input id="certificato" placeholder="Certificato">
+    <input id="note" placeholder="Note">
+
+    <button class="action" onclick="salvaOperaio()">Salva e Genera QR</button>
+
+    <div id="qrBox"></div>
   </div>
 </div>
 
@@ -112,15 +127,18 @@
 <div id="cantieri" class="pagina">
   <div class="card">
     <h3>🏗️ Cantieri</h3>
-    <input id="cantiereNome">
+    <div class="info">Inserisci il nome del cantiere dove si lavora</div>
+
+    <input id="cantiereNome" placeholder="Nome cantiere">
     <button class="action" onclick="salvaCantiere()">Salva</button>
   </div>
 </div>
 
-<!-- PRESENZE -->
+<!-- PRESENZE ADMIN -->
 <div id="presenze" class="pagina">
   <div class="card">
-    <h3>📅 Presenze</h3>
+    <h3>📅 Presenze Admin</h3>
+    <div class="info">Gestione presenze operai e cantieri</div>
 
     <input type="date" id="data">
 
@@ -140,16 +158,33 @@
   </div>
 </div>
 
-<!-- REPORT + BUSTA PAGA -->
+<!-- FIRMA OPERAIO -->
+<div id="firma" class="pagina">
+  <div class="card">
+    <h3>✍️ Firma Operaio</h3>
+    <div class="info">Firma rapida presenza operaio</div>
+
+    <input id="firmaNome" placeholder="Nome e Cognome">
+
+    <select id="firmaCantiere"></select>
+
+    <input id="firmaOre" placeholder="Ore lavorate">
+    <input id="firmaLavoro" placeholder="Cosa hai fatto">
+
+    <button class="action" onclick="firmaPresenza()">Firma Presenza</button>
+  </div>
+</div>
+
+<!-- REPORT -->
 <div id="report" class="pagina">
   <div class="card">
     <h3>📊 Report + Busta Paga</h3>
+    <div class="info">Ricerca intelligente operai (case insensitive)</div>
 
     <input id="cercaNome" placeholder="Operaio">
     <input type="date" id="dal">
     <input type="date" id="al">
-
-    <input id="tariffa" placeholder="Tariffa oraria (€)">
+    <input id="tariffa" placeholder="Tariffa oraria €">
 
     <button class="action" onclick="reportMensile()">Genera Report</button>
     <button class="action" onclick="exportPDF()">Esporta PDF</button>
@@ -163,6 +198,7 @@
   <button onclick="mostra('operai')">👷</button>
   <button onclick="mostra('cantieri')">🏗️</button>
   <button onclick="mostra('presenze')">📅</button>
+  <button onclick="mostra('firma')">✍️</button>
   <button onclick="mostra('report')">📊</button>
 </div>
 
@@ -182,10 +218,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let ruolo="";
+let ruolo = "";
+let ultimoQR = null;
 
 window.login = function(){
-  ruolo=(user.value=="admin"&&pass.value=="1234")?"admin":"utente";
+  ruolo = (user.value=="admin" && pass.value=="1234") ? "admin" : "utente";
   loginDiv.style.display="none";
   menu.style.display="flex";
   mostra("operai");
@@ -204,64 +241,118 @@ window.mostra = function(id){
   document.getElementById(id).style.display="block";
 };
 
+function generaQR(text){
+  document.getElementById("qrBox").innerHTML="";
+  new QRCode(document.getElementById("qrBox"), text);
+}
+
 function realtime(){
+
   onSnapshot(collection(db,"operai"),(snap)=>{
     operaioPres.innerHTML="";
     snap.forEach(d=>{
       let x=d.data();
-      operaioPres.innerHTML+=`<option>${x.nome} ${x.cognome}</option>`;
+      operaioPres.innerHTML += `<option>${x.nome} ${x.cognome}</option>`;
     });
   });
 
   onSnapshot(collection(db,"cantieri"),(snap)=>{
     cantierePres.innerHTML="";
+    firmaCantiere.innerHTML="";
     snap.forEach(d=>{
       let x=d.data();
-      cantierePres.innerHTML+=`<option>${x.nome}</option>`;
+      cantierePres.innerHTML += `<option>${x.nome}</option>`;
+      firmaCantiere.innerHTML += `<option>${x.nome}</option>`;
     });
   });
 }
 
-window.salvaOperaio=async function(){
+window.salvaOperaio = async function(){
+  let id = nome.value.trim().toLowerCase()+"_"+cognome.value.trim().toLowerCase();
+
   await addDoc(collection(db,"operai"),{
-    nome:nome.value,cognome:cognome.value,telefono:telefono.value,certificato:certificato.value,note:note.value
+    id,
+    nome:nome.value,
+    cognome:cognome.value,
+    telefono:telefono.value,
+    certificato:certificato.value,
+    note:note.value
   });
+
+  generaQR(id);
+
   nome.value=cognome.value=telefono.value=certificato.value=note.value="";
 };
 
-window.salvaCantiere=async function(){
+window.salvaCantiere = async function(){
   await addDoc(collection(db,"cantieri"),{nome:cantiereNome.value});
   cantiereNome.value="";
 };
 
-window.salvaPresenza=async function(){
+window.salvaPresenza = async function(){
   await addDoc(collection(db,"presenze"),{
-    data:data.value,operaio:operaioPres.value,cantiere:cantierePres.value,stato:stato.value,ore:ore.value,lavoro:lavoro.value
+    data:data.value,
+    operaio:operaioPres.value,
+    cantiere:cantierePres.value,
+    stato:stato.value,
+    ore:ore.value,
+    lavoro:lavoro.value
   });
+
   data.value=ore.value=lavoro.value="";
 };
 
-window.reportMensile=async function(){
-  let snap=await getDocs(collection(db,"presenze"));
-  let nome=cercaNome.value,dalv=dal.value,alv=al.value;
-  let tot=0,html="";
+window.firmaPresenza = async function(){
+
+  if(!firmaNome.value) return alert("Inserisci nome e cognome");
+
+  await addDoc(collection(db,"presenze"),{
+    operaio:firmaNome.value.trim().toLowerCase(),
+    cantiere:firmaCantiere.value,
+    ore:firmaOre.value,
+    lavoro:firmaLavoro.value,
+    data:new Date().toISOString().split("T")[0],
+    tipo:"firma"
+  });
+
+  firmaOre.value="";
+  firmaLavoro.value="";
+
+  alert("Presenza firmata!");
+};
+
+window.reportMensile = async function(){
+
+  let snap = await getDocs(collection(db,"presenze"));
+
+  let nome = (cercaNome.value||"").toLowerCase().trim();
+  let dalv = dal.value;
+  let alv = al.value;
+
+  let tot = 0;
+  let html = "";
 
   snap.forEach(d=>{
-    let x=d.data();
-    if(x.operaio==nome && x.data>=dalv && x.data<=alv){
-      tot+=Number(x.ore||0);
-      html+=`<div class='item'>${x.data} - ${x.cantiere} - ${x.ore}h</div>`;
+    let x = d.data();
+
+    let op = (x.operaio||"").toLowerCase().trim();
+
+    if(op.includes(nome) && x.data>=dalv && x.data<=alv){
+      tot += Number(x.ore||0);
+      html += `<div class='item'>${x.data} - ${x.cantiere} - ${x.ore}h</div>`;
     }
   });
 
-  let paga=tot*Number(tariffa.value||0);
-  html+=`<h3>Totale ore: ${tot}</h3><h3>Totale paga: €${paga}</h3>`;
-  risultato.innerHTML=html;
+  let paga = tot * Number(tariffa.value||0);
+
+  html += `<h3>Totale ore: ${tot}</h3><h3>Totale paga: €${paga}</h3>`;
+
+  risultato.innerHTML = html;
 };
 
-window.exportPDF=function(){
-  const { jsPDF }=window.jspdf;
-  let doc=new jsPDF();
+window.exportPDF = function(){
+  const { jsPDF } = window.jspdf;
+  let doc = new jsPDF();
   doc.text(risultato.innerText,10,10);
   doc.save("busta_paga.pdf");
 };
