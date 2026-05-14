@@ -173,35 +173,48 @@
     // REPORT
     window.cerca = async function () {
 
-      let snap = await getDocs(collection(db, "presenze"));
+  let snap = await getDocs(collection(db, "presenze"));
 
-      let html = "";
+  let html = "";
 
-      let totale = 0;
+  let totale = 0;
 
-      snap.forEach(doc => {
+  let inizio = dataInizio.value;
+  let fine = dataFine.value;
 
-        let d = doc.data();
+  snap.forEach(doc => {
 
-        if (d.operaio == cercaNome.value) {
+    let d = doc.data();
 
-          totale += Number(d.ore || 0);
+    let dentroPeriodo = true;
 
-          html += `
-            <div class="item">
-              ${d.data} - ${d.cantiere} - ${d.ore} ore
-              <br>
-              ${d.lavoro}
-            </div>
-          `;
-        }
-
-      });
-
-      html += `<h3>Totale Ore: ${totale}</h3>`;
-
-      risultato.innerHTML = html;
+    if (inizio && d.data < inizio) {
+      dentroPeriodo = false;
     }
+
+    if (fine && d.data > fine) {
+      dentroPeriodo = false;
+    }
+
+    if (d.operaio == cercaNome.value && dentroPeriodo) {
+
+      totale += Number(d.ore || 0);
+
+      html += `
+        <div class="item">
+          ${d.data} - ${d.cantiere} - ${d.ore} ore
+          <br>
+          ${d.lavoro}
+        </div>
+      `;
+    }
+
+  });
+
+  html += `<h3>Totale Ore: ${totale}</h3>`;
+
+  risultato.innerHTML = html;
+}
 
   </script>
 
@@ -324,7 +337,7 @@
 
   <div class="card">
 
-    <button class="back" onclick="indietro()">⬅ Indietro</button>
+   
 
     <h2>Operai</h2>
 
@@ -351,7 +364,7 @@
 
   <div class="card">
 
-    <button class="back" onclick="indietro()">⬅ Indietro</button>
+   
 
     <h2>Cantieri</h2>
 
@@ -370,7 +383,7 @@
 
   <div class="card">
 
-    <button class="back" onclick="indietro()">⬅ Indietro</button>
+    
 
     <h2>Presenze</h2>
 
@@ -407,11 +420,14 @@
 
   <div class="card">
 
-    <button class="back" onclick="indietro()">⬅ Indietro</button>
+    
 
     <h2>Report Operaio</h2>
 
     <input id="cercaNome" placeholder="Nome operaio">
+    <input type="date" id="dataInizio">
+
+    <input type="date" id="dataFine">
 
     <button class="action" onclick="cerca()">
       Cerca
